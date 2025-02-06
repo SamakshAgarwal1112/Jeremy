@@ -5,11 +5,16 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(include)
 
-file(GLOB SOURCES "src/*.cpp")
-add_executable(Jeremy ${SOURCES})
-
 find_package(Boost REQUIRED)
+
+add_executable(server src/server.cpp)
 if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-    target_link_libraries(Jeremy ${Boost_LIBRARIES})
+    target_include_directories(server PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(server PRIVATE ${Boost_LIBRARIES})
+endif()
+
+add_executable(client src/client.cpp)
+if(Boost_FOUND)
+    target_include_directories(client PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(client PRIVATE ${Boost_LIBRARIES})
 endif()
