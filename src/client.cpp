@@ -1,38 +1,61 @@
-#include <bits/stdc++.h>
 #include <boost/asio.hpp>
+#include <boost/asio/ts/buffer.hpp>
+#include <boost/asio/ts/internet.hpp>
+#include <iostream>
+#include <thread>
 
-using namespace boost::asio;
-using ip::tcp;
-using std::string;
-using std::cin;
-using std::cout;
-using std::endl;
+std::vector<char> vBuffer(1*1024);
 
-int main() {
-    boost::asio::io_service io_service;
-    tcp::socket socket(io_service);
-    socket.connect( tcp::endpoint( boost::asio::ip::address::from_string("127.0.0.1"), 8088 ));
-    string msg = "";
-    cout << "Enter your message: ";
-    getline(cin, msg);
-    msg += "\n";
+void AsyncGrabData(boost::asio::ip::tcp::socket &socket){
+    socket.async_read_some(boost::asio::buffer(vBuffer.data(), vBuffer.size()),
+        [&](std::error_code ec, std::size_t bytes){
+            if(!ec) {
+                std::cout<< "Bytes received: " << bytes << std::endl;
+                for(int i=0; i<bytes; i++){
+                    std::cout << vBuffer[i];
+                }
+                AsyncGrabData(socket);
+            }
+            else {
+                socket.close();
+            }
+        }
+    );
+}
 
-    boost::system::error_code error;
-    boost::asio::write( socket, boost::asio::buffer(msg), error );
-    if( !error ) {
-        cout << "Client sent message successfully to server!" << endl;
+int main(){
+    boost::asio::io_context context;
+    boost::system::error_code ec;
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address("127.0.0.1",ec),8088);
+
+    boost::asio::io_context::work fakeWork(context);
+
+    std::thread thrContext = std::thread( [&]() { 
+        context.run();
+    });
+
+    boost::asio::ip::tcp::socket socket(context);
+    socket.connect(endpoint,ec);
+    if(!ec) {
+        std::cout<<"Yayyy! Connected!!"<<std::endl;
     }
     else {
-        cout << "Send failed: " << error.message() << endl;
+        std::cout<<"Good lord!!\n"<<ec.message()<<std::endl;
     }
-    boost::asio::streambuf receive_buffer;
-    boost::asio::read(socket, receive_buffer, boost::asio::transfer_all(), error);
-    if( error && error != boost::asio::error::eof ) {
-        cout << "Receive failed: " << error.message() << endl;
+
+    if(socket.is_open()){
+
+        AsyncGrabData(socket);
+
+        std::string sRequest = "Hello";
+            // "GET /index.html HTTP/1.1\r\n"
+            // "Host: google.com\r\n"
+            // "Connection: close\r\n\r\n";
+        
+        socket.write_some(boost::asio::buffer(sRequest.data(),sRequest.size()),ec);
+
+        context.stop();
+        if (thrContext.joinable()) thrContext.join();
     }
-    else {
-        const char* data = boost::asio::buffer_cast<const char*>(receive_buffer.data());
-        cout << data << endl;
-    }
-    return 0;
+    socket.close();
 }
