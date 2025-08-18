@@ -13,7 +13,7 @@ struct CacheEntry {
 class Cache {
 private:
     std::unordered_map<std::string, CacheEntry> cache_store;
-    std::mutex cache_mutex;
+    mutable std::mutex cache_mutex;
     int ttl_seconds;
 
 public:

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <thread>
+#include <string>
 
 class Cache;
 class HttpClient;
@@ -17,7 +18,7 @@ private:
 
 public:
     AsyncCacheProxy(int port = 8080, int cache_ttl = 300, 
-                   const std::string& upstream_host = "httpbin.org", 
+                   const std::string& upstream_host = std::string("httpbin.org"), 
                    int upstream_port = 80);
     ~AsyncCacheProxy();
     
